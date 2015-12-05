@@ -1,0 +1,58 @@
+#If VBA7 Then                                                        ' Windows sleep routines (# milliseconds)
+    Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr) 'For 64 Bit Systems
+#Else
+    Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)            'For 32 Bit Systems
+#End If
+
+Global NumberMoves, Speed, LinesOfCode                               ' Moves made, Delay between moves (msec), LOC
+
+Sub RunCode()
+Set picturetomove = ActiveSheet.Shapes(2)                            ' Select picture that will be animated
+Range("a:a").Cells.Font.Bold = False                                 ' Unhighlight all commands, which are in column A
+NumberMoves = 0                                                      ' Counter of number of moves, used to prevent loops
+Speed = 1000 / 4                                                     ' Default delay between moves to .25 seconds (4/1000 milliseconds)
+For r = 1 To 100                                                     ' Look for commands in rows 1-100, column A
+  If r > 1 Then Cells(r - 1, 1).Cells.Font.Bold = False              ' Unhighlight prior command
+  Cells(r, 1).Cells.Font.Bold = True                                 ' Bold current command
+  Words = Split(Cells(r, 1), " ", 2)                                 ' Split up command -  words(0)= command keyword, words(1)= #
+  If UBound(Words) > 0 Then                                          ' Empty cell?
+    If Val(Words(1)) < 1 Then MsgBox ("Invalid number, must be greater than or equal to 1 "): Cells(r, 1).Select: End ' Nonumeric or < 1 ?
+    Select Case Words(0)                                             ' Decide what to do
+      Case "up": MoveIt picturetomove, up:=1, amount:=Words(1)       ' Move picture up
+      Case "down": MoveIt picturetomove, down:=1, amount:=Words(1)   ' Move picture down
+      Case "left": MoveIt picturetomove, left:=1, amount:=Words(1)   ' Move picture left
+      Case "right": MoveIt picturetomove, right:=1, amount:=Words(1) ' Move picture right
+      Case "speed": Speed = 1000 / Words(1)                          ' Calculate delay in milliseconds
+      Case ""                                                        ' Ignore blanks
+      Case Else: MsgBox ("Invalid choice - Should be up, down, left, right, or speed"): Cells(r, 1).Select: End ' Invalid
+    End Select
+  End If
+Next
+If ActiveSheet.Shapes.Count > 1 Then                                 ' If two pictures, finished at destination (pics in same cell)?
+  If ActiveSheet.Shapes(1).TopLeftCell.Row = ActiveSheet.Shapes(2).TopLeftCell.Row And _
+     ActiveSheet.Shapes(2).TopLeftCell.Column = ActiveSheet.Shapes(2).TopLeftCell.Column Then
+    MsgBox ("Congratulations - got to destination in " & NumberMoves & " moves and " & LinesOfCode & " lines of code!")
+  Else
+    MsgBox ("Sorry, you didn't finish at the destination - try again!")
+  End If
+End If
+End Sub
+
+Sub MoveIt(picture, amount, Optional up = 0, Optional down = 0, Optional left = 0, Optional right = 0)
+LinesOfCode = LinesOfCode + 1                                        ' Count lines of "code"
+For i = 1 To Val(amount)                                             ' Move picture specified number of cells
+  NumberMoves = NumberMoves + 1                                      ' Stop after 15 seconds to prevent long loops
+  If NumberMoves * Speed / 1000 > 15 Or NumberMoves > 15000 Then MsgBox ("Stopping, more than 15 seconds"): End
+  picture.Top = picture.Top + Cells(1, 2).Height * (down - up)       ' Down (+) and Up (-) change location of top of picture
+  picture.left = picture.left + Cells(1, 2).Width * (right - left)   ' Right (+) and Left (-) change location of left of picture
+  Application.ScreenUpdating = True                                  ' Refresh screen
+  DoEvents                                                           ' Game over if wall (black cell) or barrier (cell w/text)
+  If ActiveSheet.Cells(picture.TopLeftCell.Row, picture.TopLeftCell.Column).Interior.Color = RGB(0, 0, 0) Then
+    MsgBox ("Sorry, stopped by WALL - try again!"): End
+  End If
+  If ActiveSheet.Cells(picture.TopLeftCell.Row, picture.TopLeftCell.Column) <> "" Then
+    MsgBox ("Sorry, stopped by " & ActiveSheet.Cells(picture.TopLeftCell.Row, picture.TopLeftCell.Column) & " - try again!"): End
+  End If
+  Sleep (Speed)                                                      ' Pause specified # of milliseconds
+Next
+End Sub
