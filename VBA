@@ -10,6 +10,7 @@ Sub RunCode()
 Set picturetomove = ActiveSheet.Shapes(2)                            ' Select picture that will be animated
 Range("a:a").Cells.Font.Bold = False                                 ' Unhighlight all commands, which are in column A
 NumberMoves = 0                                                      ' Counter of number of moves, used to prevent loops
+LinesOfCode = 0                                                      ' Counter of "lines of code" (up/down/left/right)
 Speed = 1000 / 4                                                     ' Default delay between moves to .25 seconds (4/1000 milliseconds)
 For r = 1 To 100                                                     ' Look for commands in rows 1-100, column A
   If r > 1 Then Cells(r - 1, 1).Cells.Font.Bold = False              ' Unhighlight prior command
